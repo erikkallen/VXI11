@@ -5,7 +5,8 @@ Gem::Specification.new do |s|
   s.author  = "Erik Kallen"
   
   s.files = Dir.glob("ext/**/*.{c,rb,cc}") +
-            Dir.glob("lib/**/*.rb")
+            Dir.glob("lib/**/*.rb") + 
+            Dir.glob("lib/*.rb")
   
   s.extensions << "ext/vxi11/extconf.rb"
   
