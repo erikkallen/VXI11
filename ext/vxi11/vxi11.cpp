@@ -18,7 +18,7 @@ void* pt2Object;
 class VXI11
 {
 public:
-  VXI11();
+  VXI11(std::string ip="");
   void connect(std::string ip);
   std::string send_and_receive(std::string cmd, int timeout=1000);
   Hash find_devices();
@@ -43,10 +43,11 @@ int VXI11::who_responded_s( struct sockaddr_in *addr) {
 	return mySelf->who_responded(addr);
 }
 
-
-VXI11::VXI11()
+VXI11::VXI11(std::string ip)
 {
- 
+	if (ip!="") {
+		connect(ip);
+	}
 }
 
 Hash VXI11::find_devices() {
@@ -66,7 +67,7 @@ Hash VXI11::find_devices() {
 								   
 	AddrMap::const_iterator iter;
 	for (iter=gfFoundDevs.begin();iter!= gfFoundDevs.end();iter++) {
-	   const Ports& port = iter->second;
+	   //const Ports& port = iter->second;
 	   
 	   //cout << " Found: " << iter->first << " : TCP " << port.tcp_port 
 	    //    << "; UDP " << port.udp_port << endl;
@@ -116,7 +117,7 @@ void Init_vxi11()
 {
   Data_Type<VXI11> rb_cVXI11 =
     define_class<VXI11>("VXI11")
-	.define_constructor(Constructor<VXI11>())
+	.define_constructor(Constructor<VXI11,std::string>(),(Arg("ip")=""))
     .define_method("connect", &VXI11::connect)
 	.define_method("find_devices", &VXI11::find_devices)
 	.define_method("send_and_receive", &VXI11::send_and_receive, (Arg("cmd"), Arg("timeout") = 1000));
