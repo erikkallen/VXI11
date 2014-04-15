@@ -6,7 +6,9 @@ Gem::Specification.new do |s|
   
   s.files = Dir.glob("ext/**/*.{c,rb,cc}") +
             Dir.glob("lib/**/*.rb") + 
-            Dir.glob("lib/*.rb")
+            Dir.glob("lib/.rb")
+            
+  s.require_paths = [ 'lib', 'ext' ]
   
   s.extensions << "ext/vxi11/extconf.rb"
   
