@@ -1,3 +1,4 @@
 *.o
 tmp
 .depend
+*.bundle
