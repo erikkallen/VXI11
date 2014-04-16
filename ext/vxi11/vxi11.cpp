@@ -101,8 +101,8 @@ bool_t VXI11::who_responded(struct sockaddr_in *addr)
 std::string VXI11::send_and_receive(std::string cmd,int timeout)
 {
 	char * buf = new char[BUFFER_SIZE];
-	vxi11_send_and_receive(&_clink, cmd.c_str(), buf, BUFFER_SIZE, timeout);
-	
+	int found = vxi11_send_and_receive(&_clink, cmd.c_str(), buf, BUFFER_SIZE, timeout);
+	if (found > 0) buf[found] = '\0';
 	std::string str(buf);
 	delete buf;
 	return str;
