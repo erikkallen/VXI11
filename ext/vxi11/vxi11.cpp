@@ -22,6 +22,8 @@ class VXI11
 public:
   VXI11(std::string ip="");
   void connect(std::string ip);
+  void send(std::string cmd);
+  std::string receive(std::string cmd,int timeout);
   std::string send_and_receive(std::string cmd, int timeout=1000);
   Hash find_devices();
   static int who_responded_s(struct sockaddr_in *addr);
@@ -108,6 +110,21 @@ std::string VXI11::send_and_receive(std::string cmd,int timeout)
 	return str;
 }
 
+std::string VXI11::receive(std::string cmd,int timeout)
+{
+	char * buf = new char[BUFFER_SIZE];
+	int found = vxi11_receive(&_clink, buf, BUFFER_SIZE, timeout);
+	if (found > 0) buf[found] = '\0';
+	std::string str(buf);
+	delete buf;
+	return str;
+}
+
+void VXI11::send(std::string cmd)
+{
+	vxi11_send(&_clink, cmd.c_str());
+}
+
 void VXI11::connect(std::string ip)
 {
 	vxi11_open_device(ip.c_str(), &_clink);
@@ -122,5 +139,7 @@ void Init_vxi11()
 	.define_constructor(Constructor<VXI11,std::string>(),(Arg("ip")=""))
     .define_method("connect", &VXI11::connect)
 	.define_method("find_devices", &VXI11::find_devices)
+	.define_method("send", &VXI11::send)
+  	.define_method("receive", &VXI11::receive)
 	.define_method("send_and_receive", &VXI11::send_and_receive, (Arg("cmd"), Arg("timeout") = 1000));
 }
