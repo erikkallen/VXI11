@@ -13,6 +13,8 @@ using namespace Rice;
 using std::endl;
 using  std::cout;
 
+#define BUFFER_SIZE 1000000
+
 void* pt2Object;
 	
 class VXI11
@@ -98,8 +100,8 @@ bool_t VXI11::who_responded(struct sockaddr_in *addr)
 
 std::string VXI11::send_and_receive(std::string cmd,int timeout)
 {
-	char * buf = new char[100000];
-	vxi11_send_and_receive(&_clink, cmd.c_str(), buf, 100000, timeout);
+	char * buf = new char[BUFFER_SIZE];
+	vxi11_send_and_receive(&_clink, cmd.c_str(), buf, BUFFER_SIZE, timeout);
 	
 	std::string str(buf);
 	delete buf;
