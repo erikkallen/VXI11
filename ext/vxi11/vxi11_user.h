@@ -54,20 +54,20 @@ typedef	struct	CLINK CLINK;
  * write wrappers for these functions than to re-write the original functions
  * themselves. These are the 4 (or 6 if you like) key user functions that you
  * should probably be using. They all use the CLINK structure. */
-int	vxi11_open_device(const char *ip, CLINK *clink);
+int	vxi11_open(const char *ip, CLINK *clink);
 int	vxi11_open_device(const char *ip, CLINK *clink, char *device);
 int	vxi11_close_device(const char *ip, CLINK *clink);
 int	vxi11_send(CLINK *clink, const char *cmd);
-int	vxi11_send(CLINK *clink, const char *cmd, unsigned long len);
-long	vxi11_receive(CLINK *clink, char *buffer, unsigned long len);
-long	vxi11_receive(CLINK *clink, char *buffer, unsigned long len, unsigned long timeout);
+int	vxi11_send_data(CLINK *clink, const char *cmd, unsigned long len);
+long vxi11_receive(CLINK *clink, char *buffer, unsigned long len);
+long vxi11_receive_timeout(CLINK *clink, char *buffer, unsigned long len, unsigned long timeout);
 
 /* Utility functions, that use send() and receive(). Use these too. */
 int	vxi11_send_data_block(CLINK *clink, const char *cmd, char *buffer, unsigned long len);
 long	vxi11_receive_data_block(CLINK *clink, char *buffer, unsigned long len, unsigned long timeout);
 long	vxi11_send_and_receive(CLINK *clink, const char *cmd, char *buf, unsigned long buf_len, unsigned long timeout);
-long	vxi11_obtain_long_value(CLINK *clink, const char *cmd, unsigned long timeout);
-double	vxi11_obtain_double_value(CLINK *clink, const char *cmd, unsigned long timeout);
+long	vxi11_obtain_long_value_timeout(CLINK *clink, const char *cmd, unsigned long timeout);
+double	vxi11_obtain_double_value_timeout(CLINK *clink, const char *cmd, unsigned long timeout);
 long	vxi11_obtain_long_value(CLINK *clink, const char *cmd);
 double	vxi11_obtain_double_value(CLINK *link, const char *cmd);
 
@@ -75,13 +75,13 @@ double	vxi11_obtain_double_value(CLINK *link, const char *cmd);
  * retained the original functions and just written clink wrappers for them
  * (see above) as it's perhaps a little clearer this way. Probably not worth
  * delving this deep in use, but it's where the real nitty gritty is. */
-int	vxi11_open_device(const char *ip, CLIENT **client, VXI11_LINK **link, char *device);
-int	vxi11_open_link(const char *ip, CLIENT **client, VXI11_LINK **link, char *device);
-int	vxi11_close_device(const char *ip, CLIENT *client, VXI11_LINK *link);
-int	vxi11_close_link(const char *ip, CLIENT *client, VXI11_LINK *link);
-int	vxi11_send(CLIENT *client, VXI11_LINK *link, const char *cmd);
-int	vxi11_send(CLIENT *client, VXI11_LINK *link, const char *cmd, unsigned long len);
-long	vxi11_receive(CLIENT *client, VXI11_LINK *link, char *buffer, unsigned long len);
-long	vxi11_receive(CLIENT *client, VXI11_LINK *link, char *buffer, unsigned long len, unsigned long timeout);
+int	vxi11_open_device_client(const char *ip, CLIENT **client, VXI11_LINK **link, char *device);
+int	vxi11_open_link_client(const char *ip, CLIENT **client, VXI11_LINK **link, char *device);
+int	vxi11_close_device_client(const char *ip, CLIENT *client, VXI11_LINK *link);
+int	vxi11_close_link_client(const char *ip, CLIENT *client, VXI11_LINK *link);
+int	vxi11_send_client(CLIENT *client, VXI11_LINK *link, const char *cmd);
+int	vxi11_send_data_client(CLIENT *client, VXI11_LINK *link, const char *cmd, unsigned long len);
+long	vxi11_receive_client(CLIENT *client, VXI11_LINK *link, char *buffer, unsigned long len);
+long	vxi11_receive_timeout_client(CLIENT *client, VXI11_LINK *link, char *buffer, unsigned long len, unsigned long timeout);
 
 #endif

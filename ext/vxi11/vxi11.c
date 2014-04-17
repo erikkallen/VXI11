@@ -1,22 +1,20 @@
-#include <rice/Class.hpp>
-#include <rice/String.hpp>
-#include <rice/Hash.hpp>
-#include <rice/Data_Type.hpp>
-#include <rice/Constructor.hpp>
-#include "vxi11_user.h"
-
+#include <ruby.h>
+//#include "vxi11_user.h"
 #include "clnt_find_services.h"
 #include <rpc/pmap_clnt.h>
 #include <arpa/inet.h>
-#include <iostream>
-using namespace Rice;
-using std::endl;
-using  std::cout;
+
+
+void Init_vxi11();
+//extern "C" VALUE rb_vxi11_connect(VALUE ip);
+static VALUE m_vxi11;
+static VALUE c_vxi11;
 
 #define BUFFER_SIZE 1000000
 
 void* pt2Object;
-	
+//static CLINK _clink;
+/*
 class VXI11
 {
 public:
@@ -124,22 +122,25 @@ void VXI11::send(std::string cmd)
 {
 	vxi11_send(&_clink, cmd.c_str());
 }
+*/
 
-void VXI11::connect(std::string ip)
+static VALUE rb_vxi11_connect(VALUE ip)
 {
-	vxi11_open_device(ip.c_str(), &_clink);
+	//vxi11_open_device(StringValueCStr(ip), &_clink);
+	return Qnil;
 }
 
-
-extern "C"
 void Init_vxi11()
 {
-  Data_Type<VXI11> rb_cVXI11 =
+	m_vxi11 = rb_define_module("VXI11");
+	c_vxi11 = rb_define_class_under(m_vxi11,"VXI11",rb_cObject);
+	rb_define_method(c_vxi11,"connect", rb_vxi11_connect,1);
+  /*Data_Type<VXI11> rb_cVXI11 =
     define_class<VXI11>("VXI11")
 	.define_constructor(Constructor<VXI11,std::string>(),(Arg("ip")=""))
     .define_method("connect", &VXI11::connect)
 	.define_method("find_devices", &VXI11::find_devices)
 	.define_method("send", &VXI11::send)
   	.define_method("receive", &VXI11::receive)
-	.define_method("send_and_receive", &VXI11::send_and_receive, (Arg("cmd"), Arg("timeout") = 1000));
+	.define_method("send_and_receive", &VXI11::send_and_receive, (Arg("cmd"), Arg("timeout") = 1000));*/
 }
