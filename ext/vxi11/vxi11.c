@@ -8,13 +8,17 @@
 void Init_vxi11();
 VALUE rb_vxi11_connect(VALUE name,VALUE ip);
 VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self);
-static VALUE m_vxi11;
+VALUE rb_vxi11_find_devices();
+
 static VALUE c_vxi11;
 
 #define BUFFER_SIZE 1000000
 
-void* pt2Object;
 static CLINK _clink;
+VALUE found_devs;
+int connected = 0;
+
+bool_t who_responded(struct sockaddr_in *addr);
 /*
 class VXI11
 {
@@ -52,58 +56,52 @@ VXI11::VXI11(std::string ip)
 		connect(ip);
 	}
 }
-
-Hash VXI11::find_devices() {
-	Hash h;//new Hash();
-
-    enum clnt_stat clnt_stat;
+*/
+VALUE rb_vxi11_find_devices() {
+	if (!connected) {
+		rb_raise(rb_eException, "No connected");
+	}
+	enum clnt_stat clnt_stat;
     const size_t MAXSIZE = 100;
-    char rcv[MAXSIZE];
-    timeval t;
+    //char rcv[MAXSIZE];
+    struct timeval t;
     t.tv_sec = 1;
     t.tv_usec = 0;
 
-	pt2Object = (void*) this;
+	found_devs = rb_ary_new();
     // Why 6 for the protocol for the VXI-11 devices?  Not sure, but the devices
     // will otherwise not respond. 
-    clnt_stat = clnt_find_services(DEVICE_CORE, DEVICE_CORE_VERSION, 6, &t,VXI11::who_responded_s);
-								   
-	AddrMap::const_iterator iter;
-	for (iter=gfFoundDevs.begin();iter!= gfFoundDevs.end();iter++) {
-	   //const Ports& port = iter->second;
-	   
-	   //cout << " Found: " << iter->first << " : TCP " << port.tcp_port 
-	    //    << "; UDP " << port.udp_port << endl;
-	   CLINK vxi_link;
-	   rcv[0] = '\0';
-	   if ( vxi11_open_device(iter->first.c_str(), &vxi_link) < 0 ) continue;
-	   int found = vxi11_send_and_receive(&vxi_link, "*IDN?", rcv, MAXSIZE, 10);
-	   if (found > 0) rcv[found] = '\0';
-	   //cout << "  Output: " << rcv << endl;
-	   h[String(iter->first)] = String(rcv);
-	}
+    clnt_stat = clnt_find_services(DEVICE_CORE, DEVICE_CORE_VERSION, 6, &t, who_responded);
 	
-	//h[String("hello")] = String("bla");
-	
-	return h;
+	return found_devs;
 }
 
-bool_t VXI11::who_responded(struct sockaddr_in *addr) 
+bool_t who_responded(struct sockaddr_in *addr) 
 {
-  char str[INET_ADDRSTRLEN];
-  const char* an_addr = inet_ntop(AF_INET, &(addr->sin_addr), str, INET_ADDRSTRLEN);
-  if ( gfFoundDevs.find( std::string(an_addr) ) != gfFoundDevs.end() ) return 0;
-  int port_T = pmap_getport(addr, DEVICE_CORE, DEVICE_CORE_VERSION, IPPROTO_TCP);
-  int port_U = pmap_getport(addr, DEVICE_CORE, DEVICE_CORE_VERSION, IPPROTO_UDP);
-  gfFoundDevs[ std::string( an_addr ) ] = Ports(port_T, port_U);
-  return 0;
-}*/
+	VALUE h = rb_hash_new();
+  	char str[INET_ADDRSTRLEN];
+  	const char* an_addr = inet_ntop(AF_INET, &(addr->sin_addr), str, INET_ADDRSTRLEN);
+	
+	char * buf = (char*) malloc(BUFFER_SIZE);
+	int found = vxi11_send_and_receive(&_clink, "*IDN?", buf, BUFFER_SIZE, 1000);
+	if (found > 0) buf[found] = '\0';
+	
+	rb_hash_aset(h, rb_str_new2(an_addr), rb_str_new2(buf));
+	
+	rb_ary_push(found_devs,h);
+	free(buf);
+
+	return 0;
+}
 
 VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self)
 {
 	if (argc < 1 || argc > 2) {
 		rb_raise(rb_eArgError, "wrong number of arguments");
 	}	
+	if (!connected) {
+		rb_raise(rb_eException, "No connected");
+	}
 	
 	VALUE timeout;
 	
@@ -112,7 +110,6 @@ VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self)
 	} else {
 		timeout = argv[1];
 	}
-	//printf("gets here argc (%d) cmd (%s) timeout (%d)\n",argc,"bla",NUM2INT(timeout));
 	char * buf = (char*) malloc(BUFFER_SIZE);
 	int found = vxi11_send_and_receive(&_clink, StringValueCStr(argv[0]), buf, BUFFER_SIZE, NUM2INT(timeout));
 	if (found > 0) buf[found] = '\0';
@@ -123,11 +120,12 @@ VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self)
 
 VALUE rb_vxi11_receive(int argc, VALUE *argv, VALUE self)
 {
-	
-	
 	if (argc > 1 ) {
 		rb_raise(rb_eArgError, "wrong number of arguments");
 	}	
+	if (!connected) {
+		rb_raise(rb_eException, "No connected");
+	}
 	
 	VALUE timeout;
 	
@@ -136,7 +134,6 @@ VALUE rb_vxi11_receive(int argc, VALUE *argv, VALUE self)
 	} else {
 		timeout = argv[0];
 	}
-	//printf("gets here argc (%d) cmd (%s) timeout (%d)\n",argc,"bla",NUM2INT(timeout));
 	char * buf = (char*) malloc(BUFFER_SIZE);
 	int found = vxi11_receive_timeout(&_clink, buf, BUFFER_SIZE, NUM2INT(timeout));
 	if (found > 0) buf[found] = '\0';
@@ -145,8 +142,23 @@ VALUE rb_vxi11_receive(int argc, VALUE *argv, VALUE self)
 	return str;
 }
 
+VALUE rb_vxi11_init(int argc, VALUE *argv, VALUE self) {
+	if (argc > 1) {
+		rb_raise(rb_eArgError, "wrong number of arguments");
+	}
+	
+	if (argc == 1){
+		rb_vxi11_connect(self,argv[0]);
+	}
+	
+	return self;
+}
+
 VALUE rb_vxi11_send(VALUE name, VALUE cmd)
 {
+	if (!connected) {
+		rb_raise(rb_eException, "No connected");
+	}
 	vxi11_send(&_clink, StringValueCStr(cmd));
 	return Qnil;
 }
@@ -154,27 +166,18 @@ VALUE rb_vxi11_send(VALUE name, VALUE cmd)
 
 VALUE rb_vxi11_connect(VALUE name,VALUE ip)
 {
-	//VALUE str = rb_str_dup(ip);
-	//printf("BLAAT: %s\n",StringValueCStr(ip));
 	vxi11_open(StringValueCStr(ip), &_clink);
+	connected = 1;
 	return Qnil;
 }
 
 void Init_vxi11()
 {
-	//printf("Extention loaded");
-	m_vxi11 = rb_define_module("VXI11");
-	c_vxi11 = rb_define_class_under(m_vxi11,"VXI11",rb_cObject);
+	c_vxi11 = rb_define_class("VXI11",rb_cObject);
 	rb_define_method(c_vxi11,"connect", rb_vxi11_connect,1);
 	rb_define_method(c_vxi11,"send_and_receive", rb_vxi11_send_and_receive,-1);
 	rb_define_method(c_vxi11,"receive", rb_vxi11_receive,-1);
 	rb_define_method(c_vxi11,"send", rb_vxi11_send,1);
-  /*Data_Type<VXI11> rb_cVXI11 =
-    define_class<VXI11>("VXI11")
-	.define_constructor(Constructor<VXI11,std::string>(),(Arg("ip")=""))
-    .define_method("connect", &VXI11::connect)
-	.define_method("find_devices", &VXI11::find_devices)
-	.define_method("send", &VXI11::send)
-  	.define_method("receive", &VXI11::receive)
-	.define_method("send_and_receive", &VXI11::send_and_receive, (Arg("cmd"), Arg("timeout") = 1000));*/
+	rb_define_method(c_vxi11,"find_devices", rb_vxi11_find_devices,0);
+	rb_define_method(c_vxi11,"initialize", rb_vxi11_init,-1);
 }

@@ -2,10 +2,11 @@
 
 require './ext/vxi11/vxi11'
 
-t = VXI11::VXI11.new
+t = VXI11.new "192.168.47.157"
 
-#puts t.find_devices
-t.connect "192.168.47.157"
+
+puts t.find_devices.inspect
+
 
 #puts t.send_and_receive("DATA:FFT:X?")
 
