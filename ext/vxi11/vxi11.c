@@ -1,19 +1,20 @@
 #include <ruby.h>
-//#include "vxi11_user.h"
+#include "vxi11_user.h"
 #include "clnt_find_services.h"
 #include <rpc/pmap_clnt.h>
 #include <arpa/inet.h>
 
 
 void Init_vxi11();
-//extern "C" VALUE rb_vxi11_connect(VALUE ip);
+VALUE rb_vxi11_connect(VALUE name,VALUE ip);
+VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self);
 static VALUE m_vxi11;
 static VALUE c_vxi11;
 
 #define BUFFER_SIZE 1000000
 
 void* pt2Object;
-//static CLINK _clink;
+static CLINK _clink;
 /*
 class VXI11
 {
@@ -96,45 +97,78 @@ bool_t VXI11::who_responded(struct sockaddr_in *addr)
   int port_U = pmap_getport(addr, DEVICE_CORE, DEVICE_CORE_VERSION, IPPROTO_UDP);
   gfFoundDevs[ std::string( an_addr ) ] = Ports(port_T, port_U);
   return 0;
-}
+}*/
 
-std::string VXI11::send_and_receive(std::string cmd,int timeout)
+VALUE rb_vxi11_send_and_receive(int argc, VALUE *argv, VALUE self)
 {
-	char * buf = new char[BUFFER_SIZE];
-	int found = vxi11_send_and_receive(&_clink, cmd.c_str(), buf, BUFFER_SIZE, timeout);
+	if (argc < 1 || argc > 2) {
+		rb_raise(rb_eArgError, "wrong number of arguments");
+	}	
+	
+	VALUE timeout;
+	
+	if (argc == 1) {
+		timeout = INT2FIX(1000);
+	} else {
+		timeout = argv[1];
+	}
+	//printf("gets here argc (%d) cmd (%s) timeout (%d)\n",argc,"bla",NUM2INT(timeout));
+	char * buf = (char*) malloc(BUFFER_SIZE);
+	int found = vxi11_send_and_receive(&_clink, StringValueCStr(argv[0]), buf, BUFFER_SIZE, NUM2INT(timeout));
 	if (found > 0) buf[found] = '\0';
-	std::string str(buf);
-	delete buf;
+	VALUE str = rb_str_new2(buf);
+	free(buf);
 	return str;
 }
 
-std::string VXI11::receive(std::string cmd,int timeout)
+VALUE rb_vxi11_receive(int argc, VALUE *argv, VALUE self)
 {
-	char * buf = new char[BUFFER_SIZE];
-	int found = vxi11_receive(&_clink, buf, BUFFER_SIZE, timeout);
+	
+	
+	if (argc > 1 ) {
+		rb_raise(rb_eArgError, "wrong number of arguments");
+	}	
+	
+	VALUE timeout;
+	
+	if (argc == 0) {
+		timeout = INT2FIX(1000);
+	} else {
+		timeout = argv[0];
+	}
+	//printf("gets here argc (%d) cmd (%s) timeout (%d)\n",argc,"bla",NUM2INT(timeout));
+	char * buf = (char*) malloc(BUFFER_SIZE);
+	int found = vxi11_receive_timeout(&_clink, buf, BUFFER_SIZE, NUM2INT(timeout));
 	if (found > 0) buf[found] = '\0';
-	std::string str(buf);
-	delete buf;
+	VALUE str = rb_str_new2(buf);
+	free(buf);
 	return str;
 }
 
-void VXI11::send(std::string cmd)
+VALUE rb_vxi11_send(VALUE name, VALUE cmd)
 {
-	vxi11_send(&_clink, cmd.c_str());
+	vxi11_send(&_clink, StringValueCStr(cmd));
+	return Qnil;
 }
-*/
 
-static VALUE rb_vxi11_connect(VALUE ip)
+
+VALUE rb_vxi11_connect(VALUE name,VALUE ip)
 {
-	//vxi11_open_device(StringValueCStr(ip), &_clink);
+	//VALUE str = rb_str_dup(ip);
+	//printf("BLAAT: %s\n",StringValueCStr(ip));
+	vxi11_open(StringValueCStr(ip), &_clink);
 	return Qnil;
 }
 
 void Init_vxi11()
 {
+	//printf("Extention loaded");
 	m_vxi11 = rb_define_module("VXI11");
 	c_vxi11 = rb_define_class_under(m_vxi11,"VXI11",rb_cObject);
 	rb_define_method(c_vxi11,"connect", rb_vxi11_connect,1);
+	rb_define_method(c_vxi11,"send_and_receive", rb_vxi11_send_and_receive,-1);
+	rb_define_method(c_vxi11,"receive", rb_vxi11_receive,-1);
+	rb_define_method(c_vxi11,"send", rb_vxi11_send,1);
   /*Data_Type<VXI11> rb_cVXI11 =
     define_class<VXI11>("VXI11")
 	.define_constructor(Constructor<VXI11,std::string>(),(Arg("ip")=""))
