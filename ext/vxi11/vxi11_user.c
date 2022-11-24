@@ -314,7 +314,8 @@ char		scan_cmd[20];
  * fn's, but is also handy and useful for user and library use */
 long	vxi11_send_and_receive(CLINK *clink, const char *cmd, char *buf, unsigned long buf_len, unsigned long timeout) {
 int	ret;
-long	bytes_returned;
+long	bytes_returned = -3;
+int     retries_count = READ_WRITE_RETRIES_COUNT;
 	do {
 		ret = vxi11_send(clink, cmd);
 		if (ret != 0) {
@@ -335,7 +336,9 @@ long	bytes_returned;
 				}
 			else printf("(Info: VXI11_NULL_READ_RESP in vxi11_send_and_receive, resending query)\n");
 			}
-		} while (bytes_returned == -VXI11_NULL_READ_RESP || ret == -VXI11_NULL_WRITE_RESP);
+		sleep(0.5);
+		--retries_count;
+		} while (bytes_returned == -VXI11_NULL_READ_RESP || ret == -VXI11_NULL_WRITE_RESP || retries_count > 0);
 	return bytes_returned;
 	}
 
