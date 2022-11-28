@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name    = "vxi11"
-  s.version = "0.1.3"
+  s.version = "0.1.4"
   s.summary = "VXI11 protocol library for Ruby"
   s.author  = "Erik Kallen"
   s.email   = "info@erikkallen.nl"
